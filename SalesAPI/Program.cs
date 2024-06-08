@@ -1,3 +1,10 @@
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using SalesAPI.Data;
+using SalesAPI.Entities;
+using SalesAPI.Extensions;
+using SalesAPI.Repositories;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -5,7 +12,34 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Đăng ký DbContext
+builder.Services.AddDbContext<SalesDbContext>(option =>
+{
+    option.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+
+// Dăng kí Controllers
+builder.Services.AddControllers();
+
+// Đăng ký Cors (Chính sách bảo mật, định nghĩa các kết nối được phép vào)
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
+    policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+
+// Đăng ký Identity
+builder.Services.AddIdentity<User, Role>()
+    .AddEntityFrameworkStores<SalesDbContext>().AddDefaultTokenProviders();
+
+// Đăng ký Repository (Life cirle: Transient, Scoped, Singleton)
+builder.Services.AddTransient<IProductRepository, ProductRepository>();
+
 var app = builder.Build();
+
+// Chạy SeedAsync khi khởi động (Khởi tạo Data)
+app.MigrateDbContext<SalesDbContext>((context, services) =>
+{
+    var logger = services.GetService<ILogger<SalesDbContextSeed>>()!;
+    new SalesDbContextSeed().SeedAsync(context, logger).Wait();
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -16,29 +50,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.UseCors();
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+app.MapControllers();
+
+app.UseRouting();
 
 app.Run();
-
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
