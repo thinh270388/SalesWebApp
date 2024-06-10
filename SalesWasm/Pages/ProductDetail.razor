@@ -1,0 +1,55 @@
+﻿@page "/productDetail/{productId}"
+@using SalesModels
+@using SalesWasm.Services
+@using SalesWasm.Components
+@inject IProductApiClient ProductApiClient
+
+<main>
+    @if (productDto == null)
+    {
+        <LoadingIndicator></LoadingIndicator>
+    }
+    else
+    {
+        <h3>ProductDetail: @productId</h3>
+        <table class="table">
+            <tr>
+                <td>Name</td>
+                <td>@productDto.Name</td>
+            </tr>
+            <tr>
+                <td>Category Name</td>
+                <td>@productDto.CategoryName</td>
+            </tr>
+            <tr>
+                <td>Inout Price</td>
+                <td>@productDto.InputPrice</td>
+            </tr>
+            <tr>
+                <td>Output Price</td>
+                <td>@productDto.OutputPrice</td>
+            </tr>
+            <tr>
+                <td>Quantity</td>
+                <td>@productDto.Quantity</td>
+            </tr>
+            <tr>
+                <td>Status</td>
+                <td>@productDto.Status</td>
+            </tr>
+        </table>
+    }
+</main>
+
+
+@code {
+    [Parameter]
+    public string productId { get; set; }
+
+    public ProductDto productDto { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        productDto = await ProductApiClient.GetById(productId);
+    }
+}

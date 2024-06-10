@@ -1,7 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 using Polly;
 using SalesAPI.Data;
 using SalesAPI.Entities;
+using System.Linq;
 
 namespace SalesAPI.Repositories
 {
@@ -15,26 +17,31 @@ namespace SalesAPI.Repositories
         }
         public async Task<Product> Create(Product model)
         {
-            await _context.Products.AddAsync(model);
+            _context.Products.Add(model);
             await _context.SaveChangesAsync();
-            return model;
+
+            var result = await _context.Products.Include(x => x.Category).FirstOrDefaultAsync(x => x.Id == model.Id);
+            return result!;
         }
 
-        public async Task<Product> Delete(Product model)
+        public async Task Delete(Guid id)
         {
-            _context.Products.Remove(model);
-            await _context.SaveChangesAsync();
-            return model;
+            var data = await _context.Products.FirstOrDefaultAsync(x => x.Id == id);
+            if (data != null)
+            {
+                _context.Products.Remove(data);
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task<List<Product>> GetAll()
         {
-            return await _context.Products.ToListAsync();
+            return await _context.Products.Include(x => x.Category).ToListAsync();
         }
 
-        public async Task<Product> GetById(Product model)
+        public async Task<Product> GetById(Guid id)
         {
-            var data = await _context.Products.FindAsync(model);
+            var data = await _context.Products.Include(x => x.Category).FirstOrDefaultAsync(x => x.Id == id);
             return data!;
         }
 
@@ -42,7 +49,9 @@ namespace SalesAPI.Repositories
         {
             _context.Products.Update(model);
             await _context.SaveChangesAsync();
-            return model;
+
+            var result = await _context.Products.Include(x => x.Category).FirstOrDefaultAsync(x => x.Id == model.Id);
+            return result!;
         }
     }
 }

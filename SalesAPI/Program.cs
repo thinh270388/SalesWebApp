@@ -31,6 +31,7 @@ builder.Services.AddIdentity<User, Role>()
 
 // Đăng ký Repository (Life cirle: Transient, Scoped, Singleton)
 builder.Services.AddTransient<IProductRepository, ProductRepository>();
+builder.Services.AddTransient<ICategorytRepository, CategoryRepository>();
 
 var app = builder.Build();
 
